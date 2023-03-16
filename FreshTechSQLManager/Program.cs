@@ -107,6 +107,24 @@ namespace FreshTechSQLManager
                         );
                     break;
 
+                case CommandType.DescribeTable:
+                    ExecutionWithRead(
+                        () => _instance.DescribeTable(result.InputList.Name)
+                        );
+                    break;
+
+                case CommandType.InsertIntoTable:
+                    SimpleExecution(() =>
+                    _instance.Insert(result.InputList.Name, new string[1] { "*" }, new string[1][] { result.InputList.InputItems.ToArray() })
+                    ,"donnée inséré");
+                    break;
+
+                case CommandType.SelectAllFromTable:
+                    ExecutionWithRead(
+                        () => _instance.Select(result.InputList.Name, new string[1] { "*" })
+                        );
+                    break;
+
                 case CommandType.ShowTables:
                     ExecutionWithRead(
                         _instance.ShowTables
@@ -143,6 +161,26 @@ namespace FreshTechSQLManager
             {
                 string[] lines = func.Invoke();
                 Array.ForEach(lines, Console.WriteLine);
+            }
+            catch (ArgumentException ex)
+            {
+                Error(ex.ToString());
+            }
+        }
+
+        // TODO
+        static void ExecutionWithRead(Func<string[][]> func)
+        {
+            try
+            {
+                string[][] datas = func.Invoke();
+                // à améliorer
+                Array.ForEach(datas, 
+                    (lines) =>
+                    {
+                        Array.ForEach(lines, Console.Write);
+                    });
+                Console.WriteLine();
             }
             catch (ArgumentException ex)
             {

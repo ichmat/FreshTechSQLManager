@@ -386,7 +386,7 @@ namespace FreshTechSQLManager.Entity
         /// 1er dimension : lignes
         /// 2e  dimension : colonnes
         /// </returns>
-        private string[][] Select(string tablename, string[] columns)
+        internal string[][] Select(string tablename, string[] columns)
         {
             Column[] colsmodel = GetColumns(tablename, columns);
             Dictionary<Column, Value[]> datas = Where(tablename, colsmodel);
