@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FreshTechSQLManager": {
+      "commandName": "Project",
+      "commandLineArgs": "billy -u admin -p admin"
+    }
+  }
+}

@@ -15,7 +15,36 @@ namespace FreshTechSQLManager.Entity
 
         internal const string ALL = "*";
 
-        internal Instance() { }
+        internal Instance() { LoadData(); }
+
+        private void LoadData()
+        {
+            Databases = new Dictionary<Guid, Database>();
+            foreach (Database db in SavingSystem.LoadData<Database>())
+            {
+                Databases.Add(db.Id, db);
+            }
+
+            Tables = new Dictionary<Guid, Table>();
+            foreach (Table table in SavingSystem.LoadData<Table>())
+            {
+                Tables.Add(table.Id, table);
+            }
+
+            IdColToValues = new Dictionary<Guid, List<Guid>>();
+            Values = new Dictionary<Guid, Value>();
+            foreach (Value val in SavingSystem.LoadData<Value>())
+            {
+                Values.Add(val.ValId, val);
+                if (!IdColToValues.ContainsKey(val.ColumnId))
+                {
+                    IdColToValues.Add(val.ColumnId, new List<Guid>());
+                }
+                IdColToValues[val.ColumnId].Add(val.ValId);
+            }
+
+            TablesName = new Dictionary<string, Guid>();
+        }
 
         internal Dictionary<Guid, Database> Databases { get; set; }
 
@@ -27,7 +56,7 @@ namespace FreshTechSQLManager.Entity
 
         private Dictionary<Guid, List<Guid>> IdColToValues { get; set; }
 
-        private void SelectedDatabase(string databaseName)
+        internal void SelectedDatabase(string databaseName)
         {
             Guid idDbFind = Guid.Empty;
             foreach(var db in Databases)
@@ -35,7 +64,7 @@ namespace FreshTechSQLManager.Entity
                 if(db.Value.Name == databaseName)
                 {
                     idDbFind = db.Key;
-                    return;
+                    break;
                 }
             }
 
@@ -47,6 +76,67 @@ namespace FreshTechSQLManager.Entity
             _selected_database = Databases[idDbFind];
 
             LoadTablesName();
+        }
+
+        internal string[] ShowDatabases()
+        {
+            return Databases.Values.ToList().ConvertAll(x => x.Name).ToArray();
+        }
+
+        internal void CreateDatabase(string databaseName)
+        {
+            databaseName = databaseName.ToLower();
+            Database? db = Databases.Values.FirstOrDefault( x => x.Name.ToLower() == databaseName);
+            if(db == null)
+            {
+                Database newdb = new Database(Guid.NewGuid(), databaseName);
+                SaveDatabaseLocal(newdb);
+            }
+            else
+            {
+                throw new ArgumentException("database already exist");
+            }
+        }
+
+        internal string[] ShowTables()
+        {
+            if (_selected_database == null)
+            {
+                throw new ArgumentException("no database selected");
+            }
+            return TablesName.Keys.ToArray();
+        }
+
+        internal string[] DescribeTable(string tableName)
+        {
+            if (_selected_database == null)
+            {
+                throw new ArgumentException("no database selected");
+            }
+            if (!TablesName.ContainsKey(tableName))
+            {
+                throw new ArgumentException("table " + tableName + " not exist");
+            }
+
+            Table selectedTable = Tables[TablesName[tableName]];
+
+            List<string> output = new List<string>();
+
+            foreach(Column column in selectedTable.Columns)
+            {
+                string plus = column.Name + " " + column.TypeValue.ToString();
+                if (column.IsPrimary)
+                {
+                    plus += " PRIMARY";
+                }
+                else if (column.NotNull)
+                {
+                    plus += " NOT NULL";
+                }
+                output.Add(plus);
+            }
+
+            return output.ToArray();
         }
 
         private void LoadTablesName()
@@ -63,6 +153,24 @@ namespace FreshTechSQLManager.Entity
                     TablesName.Add(t.Name.ToLower(), t.Id);
                 }
             }
+        }
+
+        internal void CreateTable(string name, string[] columns)
+        {
+            List<ColumnArg> args = new List<ColumnArg>();
+            for(int i = 0; i< columns.Length; ++i)
+            {
+                if(i == 0)
+                {
+                    args.Add(new ColumnArg(true, columns[i], typeof(string), false));
+                }
+                else
+                {
+                    args.Add(new ColumnArg(false, columns[i], typeof(string), true));
+                }
+            }
+
+            CreateTable(name, args.ToArray());
         }
 
         private void CreateTable(string name, params ColumnArg[] args)
@@ -90,7 +198,7 @@ namespace FreshTechSQLManager.Entity
                     throw new ArgumentException("columnname already exist");
                 }
 
-                cols.Add(new Column(arg.name, arg.type, arg.isPrimary, !arg.isNullable));
+                cols.Add(new Column(arg.name, Column.TypeToEnum(arg.type), arg.isPrimary, !arg.isNullable));
                 namesChecker.Add(arg.name.ToLower());
             }
 
@@ -98,7 +206,7 @@ namespace FreshTechSQLManager.Entity
             SaveTableLocal(table);
         }
 
-        private void DropTable(string name)
+        internal void DropTable(string name)
         {
             name = name.ToLower();
             if (TablesName.ContainsKey(name))
@@ -121,7 +229,7 @@ namespace FreshTechSQLManager.Entity
         /// 1er dimension : Colonne <br></br>
         /// 2e dimension : Ligne
         /// </param>
-        private void Insert(string tablename, string[] columns, params object?[][] args)
+        internal void Insert(string tablename, string[] columns, params object?[][] args)
         {
             tablename = tablename.ToLower();
             if(columns.Length == 0)
@@ -388,11 +496,13 @@ namespace FreshTechSQLManager.Entity
         private void SaveDatabaseLocal(Database database)
         {
             Databases.Add(database.Id, database);
+            SavingSystem.SaveData(Databases.Values);
         }
 
         private void RemoveDatabaseLocal(Database database)
         {
             Databases.Remove(database.Id);
+            SavingSystem.SaveData(Databases.Values);
         }
 
         private void SaveTableLocal(Table table)
@@ -400,6 +510,8 @@ namespace FreshTechSQLManager.Entity
             Tables.Add(table.Id, table);
             if(_selected_database != null && table.DatabaseId == _selected_database.Id)
                 TablesName.Add(table.Name.ToLower(), table.Id);
+
+            SavingSystem.SaveData(Tables.Values);
         }
 
         private void RemoveTableLocal(Table table)
@@ -407,6 +519,8 @@ namespace FreshTechSQLManager.Entity
             Tables.Remove(table.Id);
             if(TablesName.ContainsKey(table.Name.ToLower()))
                 TablesName.Remove(table.Name.ToLower());
+
+            SavingSystem.SaveData(Tables.Values);
         }
 
         private void SaveValuesLocal(params Value[] values)
@@ -420,6 +534,8 @@ namespace FreshTechSQLManager.Entity
                 }
                 IdColToValues[val.ColumnId].Add(val.ValId);
             }
+
+            SavingSystem.SaveData(Values.Values);
         }
 
         private void RemoveValuesLocal(params Value[] values)
@@ -434,6 +550,8 @@ namespace FreshTechSQLManager.Entity
                     IdColToValues.Remove(val.ColumnId);
                 }
             }
+
+            SavingSystem.SaveData(Values.Values);
         }
     }
 

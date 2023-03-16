@@ -2,18 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace FreshTechSQLManager.Entity.Models
 {
-    internal class Table
+    public class Table
     {
+        [JsonInclude]
         public Guid Id { get; set; }
 
+        [JsonInclude]
         public Guid DatabaseId { get; set; }
 
+        [JsonInclude]
         public string Name { get; set; }
 
+        [JsonInclude]
         public List<Column> Columns { get; set; }
 
         public Table(Guid databaseId, Guid id, string name, List<Column> columns)
