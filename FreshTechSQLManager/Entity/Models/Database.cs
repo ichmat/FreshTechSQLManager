@@ -11,5 +11,11 @@ namespace FreshTechSQLManager.Entity.Models
         public Guid Id { get; set; }
 
         public string Name { get; set; }
+
+        public Database(Guid id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
     }
 }

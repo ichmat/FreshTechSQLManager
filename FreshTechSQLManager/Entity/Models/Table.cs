@@ -28,5 +28,10 @@ namespace FreshTechSQLManager.Entity.Models
         {
             get => Columns[key];
         }
+
+        public Column? this[string key]
+        {
+            get => Columns.FirstOrDefault(x => x.Name.ToLower() == key.ToLower());
+        }
     }
 }
