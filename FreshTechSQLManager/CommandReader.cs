@@ -19,6 +19,7 @@ namespace FreshTechSQLManager
             Table,
             Tables,
             Column,
+            Values,
             Into,
             Login,
             None
@@ -105,13 +106,13 @@ namespace FreshTechSQLManager
                 case "INSERT":
                     if (commandWords.Length > 2 && commandWords[1].ToUpper() == "INTO")
                     {
-                        AddColomnOrTableName(commandWords, InputType.Table);
+                        AddColomnOrTableName(commandWords, InputType.Values);
                         return CommandType.InsertIntoTable;
                     }
                     break;
 
                 case "SELECT":
-                    if (commandWords.Length > 2 && commandWords[1].ToUpper() == "FROM" && commandWords[2].ToUpper() == "TABLE")
+                    if (commandWords.Length > 2 && commandWords[2].ToUpper() == "FROM")
                     {
                         AddColomnOrTableName(commandWords, InputType.Table);
                         return CommandType.SelectAllFromTable;
@@ -158,18 +159,22 @@ namespace FreshTechSQLManager
 
                     case InputType.Table:
 
-                        if (command[0].ToUpper() == "INTO" && command[3].ToUpper() == "VALUES")
+
+                        if (command[0].ToUpper() == "DESCRIBE")
                         {
                             commandResult.InputList.Name = command[2].ToString();
-                            while (i + 4 < command.Length)
-                            {
-                                commandResult.InputList.InputItems.Add(command[i + 4]);
-                                i++;
-                            }
                         }
-                        else if (command[0].ToUpper() == "DESCRIBE")
+                        else if (command[2].ToUpper() == "FROM")
                         {
-                            commandResult.InputList.Name = command[1].ToString();
+                            commandResult.InputList.Name = command[3].ToString();
+                            string columns3 = command[1];
+                            columns3 = columns3.Replace(")", "").Replace("(", "");
+                            var column3 = columns3.Split(",");
+                            foreach (var item in column3)
+                            {
+                                commandResult.InputList.InputItems.Add(item);
+
+                            }
                         }
 
                         break;
@@ -198,7 +203,20 @@ namespace FreshTechSQLManager
 
                         }
                         break;
+                    case InputType.Values:
+                        if (command[1].ToUpper() == "INTO" && command[3].ToUpper() == "VALUES")
+                        {
+                            commandResult.InputList.Name = command[2].ToString();
+                            string columns2 = command[i + 4];
+                            columns2 = columns2.Replace(")", "").Replace("(", "");
+                            var column2 = columns2.Split(",");
+                            foreach (var item in column2)
+                            {
+                                commandResult.InputList.InputItems.Add(item);
 
+                            }
+                        }
+                        break;
                     case InputType.Tables:
                     case InputType.Into:
                     case InputType.Databases:
