@@ -8,10 +8,17 @@ using static FreshTechSQLManager.CommandReader;
 
 namespace FreshTechSQLManager
 {
-    internal class CommandReader
+    public class CommandReader
     {
         Command command1 = null;
 
+        public enum InputType
+        {
+            Database,
+            Table,
+            colomn,
+            None
+        }
         public enum CommandType
         {
             CreateDatabase,
@@ -56,6 +63,7 @@ namespace FreshTechSQLManager
             {
                 case "CREATE":
                     if (commandWords.Length > 1 && commandWords[1].ToUpper() == "DATABASE")
+                       // AddColomnOrTableName()
                         return CommandType.CreateDatabase;
                     else if (commandWords.Length > 1 && commandWords[1].ToUpper() == "TABLE")
                         return CommandType.CreateTable;
@@ -93,6 +101,7 @@ namespace FreshTechSQLManager
         internal CommandType DefineCommand(string command)
         {
             var commandWords = SplitCommand(command);
+
             switch (commandWords[0])
             {
                 case "CREATE":
@@ -108,6 +117,48 @@ namespace FreshTechSQLManager
             }
         }
 
-}
+        internal void AddColomnOrTableName(string[] command, InputType type)
+        {
+            int i = 0;
+            if (command[2] != null)
+            {
+                switch (type)
+                {
+                    case InputType.Table:
+                        command1.InputList.Name = command[2].ToString();
+                        while (command[i+2] != null)
+                        {
+                            command1.InputList.InputItems.Add(command[i + 2]);
+                             i++;
+                        }
+                        break;
+                    case InputType.colomn:
+                        command1.InputList.Name = command[2].ToString();
+                        while (command[i + 2] != null)
+                        {
+                            command1.InputList.InputItems.Add(command[i + 2]);
+                            i++;
+                        }
+                        break;
+                    case InputType.Database:
+                        command1.InputList.Name = command[2].ToString();
+                        while (command[i + 2] != null)
+                        {
+                            command1.InputList.InputItems.Add(command[i + 2]);
+                            i++;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+            else
+            {
+                Console.WriteLine("No name specified please enter the name");
+            }
+        }
+
+    }
 }
 

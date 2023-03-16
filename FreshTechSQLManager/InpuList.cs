@@ -7,12 +7,12 @@ using static FreshTechSQLManager.CommandReader;
 
 namespace FreshTechSQLManager
 {
-    public class Command
+    public class InputList
     {
-        public string CommandString { get; set; }
-        public CommandType CommandType { get; set; }
-        
-        public InputList? InputList { get; set; }
+        public string Name { get; set; }
 
+        public InputType Type { get; set; }
+
+        public List<string> InputItems { get; set;}
     }
 }
