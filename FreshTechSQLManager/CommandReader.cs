@@ -29,6 +29,8 @@ namespace FreshTechSQLManager
             InsertIntoTable,
             SelectAllFromTable,
             Login,
+            Disconnect,
+            Exit,
             Undefined
         }
 
@@ -62,35 +64,54 @@ namespace FreshTechSQLManager
             switch (firstWord)
             {
                 case "CREATE":
-                    if (commandWords.Length > 1 && commandWords[1].ToUpper() == "DATABASE")
-                       // AddColomnOrTableName()
-                        return CommandType.CreateDatabase;
-                    else if (commandWords.Length > 1 && commandWords[1].ToUpper() == "TABLE")
-                        return CommandType.CreateTable;
-                    break;
 
+                    if (commandWords.Length > 1 && commandWords[1].ToUpper() == "DATABASE")
+                    {
+                        AddColomnOrTableName(commandWords, InputType.Database);
+                        return CommandType.CreateDatabase;
+                    }
+                    else if (commandWords.Length > 1 && commandWords[1].ToUpper() == "TABLE")
+                    {
+                        AddColomnOrTableName(commandWords, InputType.Table);
+                        return CommandType.CreateTable;
+                    }
+                    break;
                 case "SHOW":
                     if (commandWords.Length > 1 && commandWords[1].ToUpper() == "DATABASES")
+                    {
+                        AddColomnOrTableName(commandWords, InputType.Database);
                         return CommandType.ShowDatabases;
+                    }
                     else if (commandWords.Length > 1 && commandWords[1].ToUpper() == "TABLES")
+                    {
+                        AddColomnOrTableName(commandWords, InputType.Table);
                         return CommandType.ShowTables;
+                    }
                     break;
 
                 case "DESCRIBE":
                     if (commandWords.Length > 2 && commandWords[1].ToUpper() == "TABLE")
+                    {
+                        AddColomnOrTableName(commandWords, InputType.Table);
                         return CommandType.DescribeTable;
+                    }
                     break;
 
                 case "INSERT":
                     if (commandWords.Length > 2 && commandWords[1].ToUpper() == "INTO" && commandWords[2].ToUpper() == "TABLE")
+                    {
+                        AddColomnOrTableName(commandWords, InputType.Table);
                         return CommandType.InsertIntoTable;
+                    }
                     break;
 
                 case "SELECT":
                     if (commandWords.Length > 2 && commandWords[1].ToUpper() == "FROM" && commandWords[2].ToUpper() == "TABLE")
+                    {
+                        AddColomnOrTableName(commandWords, InputType.Table);
                         return CommandType.SelectAllFromTable;
+                    }
                     break;
-
             }
 
             return CommandType.Undefined;
