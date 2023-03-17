@@ -1,4 +1,5 @@
 ﻿using FreshTechSQLManager.Entity;
+using FreshTechSQLManager.Entity.Models;
 using System;
 using static FreshTechSQLManager.CommandReader;
 
@@ -6,6 +7,7 @@ namespace FreshTechSQLManager
 {
     internal class Program
     {
+        
 
         private static bool _is_logged = false;
         private static Instance _instance;
@@ -91,14 +93,14 @@ namespace FreshTechSQLManager
                 case CommandType.SelectDatabase:
                     SimpleExecution(() =>
                         _instance.SelectedDatabase(result.InputList.Name),
-                        "database " + result.InputList.Name + " selected"
+                        "Database " + result.InputList.Name + " selected"
                     );
                     break;
 
                 case CommandType.CreateTable:
                     SimpleExecution(() =>
                         _instance.CreateTable(result.InputList.Name, result.InputList.InputItems.ToArray()),
-                        "table created");
+                        "Table created");
                     break;
 
                 case CommandType.ShowDatabases:
@@ -118,7 +120,7 @@ namespace FreshTechSQLManager
                 case CommandType.InsertIntoTable:
                     SimpleExecution(() =>
                     _instance.Insert(result.InputList.Name, new string[1] { "*" }, new string[1][] { result.InputList.InputItems.ToArray() })
-                    ,"donnée inséré");
+                    ,"Donnée inséré");
                     break;
 
                 case CommandType.SelectAllFromTable:

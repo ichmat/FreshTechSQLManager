@@ -241,6 +241,8 @@ namespace FreshTechSQLManager.Entity
         /// </param>
         internal void Insert(string tablename, string[] columns, params object?[][] args)
         {
+            if (tablename == null)
+                throw new ArgumentException("table name is null");
             tablename = tablename.ToLower();
             args = Revert(args);
             if (columns.Length == 0)

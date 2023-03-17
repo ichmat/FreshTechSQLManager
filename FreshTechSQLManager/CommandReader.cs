@@ -12,6 +12,18 @@ namespace FreshTechSQLManager
     {
         public Command commandResult;
 
+        private static readonly string[] COMMANDS = new string[]
+        {
+            "CREATE DATABASE <database>",
+            "SHOW DATABASES",
+            "SELECT DATABASE <database>",
+            "CREATE TABLE <table> ([col1,col2,...])",
+            "SHOW TABLES",
+            "DESCRIBE TABLE <table>",
+            "INSERT INTO <table> VALUES ([val1,val2,...])>",
+            "SELECT * FROM <table>",
+        };
+
         public enum InputType
         {
             Database,
