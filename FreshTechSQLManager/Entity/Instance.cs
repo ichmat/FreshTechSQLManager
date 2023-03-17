@@ -46,6 +46,11 @@ namespace FreshTechSQLManager.Entity
             TablesName = new Dictionary<string, Guid>();
         }
 
+        internal string? GetSelectedDatabaseName()
+        {
+            return _selected_database?.Name;
+        }
+
         internal Dictionary<Guid, Database> Databases { get; set; }
 
         internal Dictionary<Guid, Table> Tables { get; private set; }
@@ -107,7 +112,7 @@ namespace FreshTechSQLManager.Entity
             return TablesName.Keys.ToArray();
         }
 
-        internal string[] DescribeTable(string tableName)
+        internal string[][] DescribeTable(string tableName)
         {
             if (_selected_database == null)
             {
@@ -120,20 +125,25 @@ namespace FreshTechSQLManager.Entity
 
             Table selectedTable = Tables[TablesName[tableName]];
 
-            List<string> output = new List<string>();
+            List<string[]> output = new List<string[]>();
 
             foreach(Column column in selectedTable.Columns)
             {
-                string plus = column.Name + " " + column.TypeValue.ToString();
+                List<string> line = new List<string>
+                {
+                    column.Name,
+                    column.TypeValue.ToString()
+                };
+
                 if (column.IsPrimary)
                 {
-                    plus += " PRIMARY";
+                    line.Add("PRIMARY");
                 }
                 else if (column.NotNull)
                 {
-                    plus += " NOT NULL";
+                    line.Add("NOT NULL");
                 }
-                output.Add(plus);
+                output.Add(line.ToArray());
             }
 
             return output.ToArray();
@@ -232,7 +242,8 @@ namespace FreshTechSQLManager.Entity
         internal void Insert(string tablename, string[] columns, params object?[][] args)
         {
             tablename = tablename.ToLower();
-            if(columns.Length == 0)
+            args = Revert(args);
+            if (columns.Length == 0)
             {
                 InsertValue(tablename, args);
                 return;
@@ -262,6 +273,36 @@ namespace FreshTechSQLManager.Entity
                 }
             }
             InsertValue(tablename, ValueToInsert);
+        }
+
+        /// <summary>
+        /// Transforme le tableau à deux dimension comme suite <br></br>
+        /// avant : <br></br>
+        /// 1er dimension : Ligne <br></br>
+        /// 2e dimension : Colonne <br></br>
+        /// après : <br></br>
+        /// 1er dimension : Colonne <br></br>
+        /// 2e dimension : Ligne
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object?[][] Revert(object?[][] args)
+        {
+            List<List<object?>> result = new List<List<object?>>();
+
+            for (int irow = 0; irow < args.Length; irow++)
+            {
+                for (int icol = 0; icol < args[irow].Length; icol++)
+                {
+                    if(result.Count == icol)
+                    {
+                        result.Add(new List<object?>());
+                    }
+                    result[icol].Add(args[irow][icol]);
+                }
+            }
+
+            return result.ConvertAll(x => x.ToArray()).ToArray();
         }
 
         /// <summary>
@@ -374,7 +415,9 @@ namespace FreshTechSQLManager.Entity
 
         private Value[] GetColumnValues(Guid columnId)
         {
-            return IdColToValues[columnId].ConvertAll(x => Values[x]).ToArray();
+            if(IdColToValues.ContainsKey(columnId))
+                return IdColToValues[columnId].ConvertAll(x => Values[x]).ToArray();
+            return new Value[0];
         }
 
         /// <summary>

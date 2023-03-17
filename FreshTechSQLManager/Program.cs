@@ -103,13 +103,15 @@ namespace FreshTechSQLManager
 
                 case CommandType.ShowDatabases:
                     ExecutionWithRead(
-                        _instance.ShowDatabases
+                        _instance.ShowDatabases,
+                        "Databases"
                         );
                     break;
 
                 case CommandType.DescribeTable:
                     ExecutionWithRead(
-                        () => _instance.DescribeTable(result.InputList.Name)
+                        () => _instance.DescribeTable(result.InputList.Name),
+                        false
                         );
                     break;
 
@@ -121,13 +123,15 @@ namespace FreshTechSQLManager
 
                 case CommandType.SelectAllFromTable:
                     ExecutionWithRead(
-                        () => _instance.Select(result.InputList.Name, new string[1] { "*" })
+                        () => _instance.Select(result.InputList.Name, new string[1] { "*" }),
+                        true
                         );
                     break;
 
                 case CommandType.ShowTables:
                     ExecutionWithRead(
-                        _instance.ShowTables
+                        _instance.ShowTables,
+                        "Tables in " + _instance.GetSelectedDatabaseName()
                         );
                     break;
 
@@ -151,41 +155,160 @@ namespace FreshTechSQLManager
             }
             catch (ArgumentException ex)
             {
-                Error(ex.ToString());
+                Error(ex.Message.ToString());
             }
         }
 
-        static void ExecutionWithRead(Func<string[]> func)
+        static void ExecutionWithRead(Func<string[]> func, string? title = null)
         {
             try
             {
                 string[] lines = func.Invoke();
-                Array.ForEach(lines, Console.WriteLine);
+                BeautifulWrite(lines, title);
             }
             catch (ArgumentException ex)
             {
-                Error(ex.ToString());
+                Error(ex.Message.ToString());
             }
         }
 
-        // TODO
-        static void ExecutionWithRead(Func<string[][]> func)
+        static void ExecutionWithRead(Func<string[][]> func, bool hightlightFirstLine)
         {
             try
             {
                 string[][] datas = func.Invoke();
                 // à améliorer
-                Array.ForEach(datas, 
+                /*Array.ForEach(datas, 
                     (lines) =>
                     {
                         Array.ForEach(lines, Console.Write);
-                    });
-                Console.WriteLine();
+                        Console.WriteLine();
+                    });*/
+                BeautifulWrite(datas, hightlightFirstLine);
             }
             catch (ArgumentException ex)
             {
-                Error(ex.ToString());
+                Error(ex.Message.ToString());
             }
+        }
+
+        static void BeautifulWrite(string[] datas, string? title = null)
+        {
+            Console.WriteLine();
+
+            int maxLeng = 0;
+            Array.ForEach(datas, (line) => {
+                if (line.Length > maxLeng) { maxLeng = line.Length; }
+            });
+            ++maxLeng;
+
+            if(title != null)
+            {
+                if(title!.Length > maxLeng) maxLeng = title!.Length;
+
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(title);
+                Console.ResetColor();
+                for (int j = 0; j < maxLeng; j++)
+                {
+                    Console.Write('-');
+                }
+                Console.WriteLine() ;
+            }
+
+            Array.ForEach(datas, Console.WriteLine);
+
+            Console.WriteLine();
+        }
+
+        static void BeautifulWrite(string[][] datas, bool hightlightFirstLine)
+        {
+            Console.WriteLine();
+            datas = FillBlank(datas);
+            int maxLeng = 0;
+            Array.ForEach(datas, (line) => { 
+                Array.ForEach(line, (word) =>
+                {
+                    if(word.Length > maxLeng) { maxLeng = word.Length; }
+                });
+            });
+            ++maxLeng;
+
+            int i = 0;
+
+            Func<string, string> format = (string word) =>
+            {
+                while(word.Length < maxLeng)
+                {
+                    word += ' ';
+                }
+                return word;
+            };
+
+            if (hightlightFirstLine)
+            {
+                string[] first = datas.First();
+
+                Console.Write('|');
+
+                int nbChar = 1;
+
+                for (int j = 0; j < first.Length; j++)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    string f = format(first[j]);
+                    Console.Write(f);
+                    Console.ResetColor();
+                    Console.Write('|');
+
+                    nbChar += f.Length + 1;
+                }
+
+                Console.WriteLine();
+
+                for (int j = 0; j < nbChar; j++)
+                {
+                    Console.Write('-');
+                }
+
+                Console.WriteLine();
+
+                ++i;
+            }
+
+            for (; i < datas.Length; i++)
+            {
+                Console.Write('|');
+                for (int j = 0; j < datas[i].Length; j++)
+                {
+                    Console.Write(format(datas[i][j]));
+                    Console.Write('|');
+                }
+                Console.WriteLine();
+            }
+            Console.WriteLine();
+
+        }
+
+        static string[][] FillBlank(string[][] datas)
+        {
+            int nbColNeeded = 0;
+            Array.ForEach(datas, line => { 
+                if (line.Length > nbColNeeded){ 
+                    nbColNeeded = line.Length; 
+                } 
+            });
+
+            List<List<string>> result = new List<List<string>>();
+
+            foreach (string[] line in datas)
+            {
+                List<string> list = new List<string>(line);
+                while(list.Count != nbColNeeded) { list.Add(string.Empty); }
+                result.Add(list);
+            }
+
+            return result.ConvertAll(x =>  x.ToArray()).ToArray();
         }
 
         static void CheckExecution(Command result)
