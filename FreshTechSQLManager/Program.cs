@@ -269,6 +269,23 @@ namespace FreshTechSQLManager
                         );
                     break;
 
+                case CommandType.Disconnect:
+                    SimpleExecution(Disconnect);
+                    break;
+
+                case CommandType.Help:
+                    ExecutionWithRead(
+                        () => result.InputList.InputItems.ToArray(),
+                        "List command"
+                        );
+                    break;
+
+                case CommandType.Version:
+                    ExecutionWithRead(
+                        () => result.InputList.Name
+                        );
+                    break;
+
                 default:
                     Warning("unkhow command " + result.CommandString);
                     break;
@@ -287,6 +304,19 @@ namespace FreshTechSQLManager
                 action.Invoke();
                 if(success != null)
                     Success(success);
+            }
+            catch (ArgumentException ex)
+            {
+                Error(ex.Message.ToString());
+            }
+        }
+
+        static void ExecutionWithRead(Func<string> func)
+        {
+            try
+            {
+                string line = func.Invoke();
+                Console.WriteLine(line);
             }
             catch (ArgumentException ex)
             {
@@ -555,6 +585,18 @@ namespace FreshTechSQLManager
             {
                 Error("bad login or password");
             }
+        }
+
+        static void Disconnect()
+        {
+            if (!_is_logged)
+            {
+                Warning("user not logged");
+                return;
+            }
+
+            _is_logged = false;
+            Success("Succefuly disconnected");
         }
 
         internal static void Error(string message)

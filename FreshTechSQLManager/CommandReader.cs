@@ -1,6 +1,7 @@
 ﻿using FreshTechSQLManager.Entity.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,11 @@ namespace FreshTechSQLManager
             "DESCRIBE TABLE <table>",
             "INSERT INTO <table> VALUES ([val1,val2,...])>",
             "SELECT * FROM <table>",
+            "-u | --user     => user login",
+            "-p | --password => user password",
+            "-s | --sql      => execute sql command",
+            "-f | --format   => data format",
+            "-h | --help     => show command list",
         };
 
         public enum InputType
@@ -167,7 +173,7 @@ namespace FreshTechSQLManager
                     return CommandType.Help;
                 case "-V":
                 case "--VERSION":
-                    commandResult.InputList.Name = VersionNumber.ToString("0.0");
+                    commandResult.InputList.Name = "FreshTechSQLManager version : " + VersionNumber.ToString(CultureInfo.InvariantCulture);
                     return CommandType.Version;
                 case "DISCONNECT":
                     commandResult.InputList.Name = command[0].ToString();
