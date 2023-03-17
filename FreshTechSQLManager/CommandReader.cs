@@ -12,6 +12,7 @@ namespace FreshTechSQLManager
     {
         public Command commandResult;
 
+        public float VersionNumber = 1.0F;
         private static readonly string[] COMMANDS = new string[]
         {
             "CREATE DATABASE <database>",
@@ -33,6 +34,7 @@ namespace FreshTechSQLManager
             Column,
             Values,
             Into,
+            listAllCmd,
             Login,
             None
         }
@@ -49,6 +51,8 @@ namespace FreshTechSQLManager
             Login,
             Disconnect,
             Exit,
+            Help,
+            Version,
             Undefined
         }
 
@@ -144,7 +148,7 @@ namespace FreshTechSQLManager
         {
             var commandWords = SplitCommand(command);
 
-            switch (commandWords[0])
+            switch (commandWords[0].ToUpper())
             {
                 case "CREATE":
                 case "SHOW":
@@ -152,12 +156,29 @@ namespace FreshTechSQLManager
                 case "INSERT":
                 case "SELECT":
                     return DefineCommandSubtype(commandWords);
+                case "--HELP":
+                case "-H" :
+                    commandResult.InputList.Name = command[0].ToString();
+                    foreach(var val in COMMANDS)
+                    {
+                    commandResult.InputList.InputItems.Add(val);
+                    }
+                    commandResult.InputList.Type = InputType.listAllCmd;
+                    return CommandType.Help;
+                case "-V":
+                case "--VERSION":
+                    commandResult.InputList.Name = VersionNumber.ToString("0.0");
+                    return CommandType.Version;
+                case "DISCONNECT":
+                    commandResult.InputList.Name = command[0].ToString();
+                    return CommandType.Disconnect; 
                 default:
                     if (command.Contains("-u"))
                     {
                         LoginCommandProcess(commandWords);
                     }
                     return CommandType.Undefined;
+
             }
         }
 
