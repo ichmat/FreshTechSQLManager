@@ -46,6 +46,11 @@ namespace FreshTechSQLManager
                 string? userWrite;
                 do
                 {
+                    if (_instance.GetSelectedDatabaseName() != null)
+                    {
+                        Console.Write(_instance.GetSelectedDatabaseName() + " > ");
+                    }
+
                     userWrite = Console.ReadLine();
                 } 
                 while (userWrite == null);
@@ -289,7 +294,8 @@ namespace FreshTechSQLManager
                 default:
                     Warning("unkhow command " + result.CommandString);
                     break;
-            } 
+            }
+            _format = FORMAT.DEFAULT;
         }
 
         /// <summary>
@@ -596,6 +602,12 @@ namespace FreshTechSQLManager
             }
 
             _is_logged = false;
+
+            if(_instance.GetSelectedDatabaseName() != null)
+            {
+                _instance.UnselectedDatabase();
+            }
+
             Success("Succefuly disconnected");
         }
 

@@ -83,6 +83,19 @@ namespace FreshTechSQLManager.Entity
             LoadTablesName();
         }
 
+        internal void UnselectedDatabase()
+        {
+            if(_selected_database != null)
+            {
+                _selected_database = null;
+                TablesName.Clear();
+            }
+            else
+            {
+                throw new ArgumentException("no database selected");
+            }
+        }
+
         internal string[] ShowDatabases()
         {
             return Databases.Values.ToList().ConvertAll(x => x.Name).ToArray();

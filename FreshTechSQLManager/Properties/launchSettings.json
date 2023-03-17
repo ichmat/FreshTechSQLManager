@@ -1,8 +1,7 @@
 {
   "profiles": {
     "FreshTechSQLManager": {
-      "commandName": "Project",
-      "commandLineArgs": "billy -u admin -p admin -s \"SELECT * FROM billytest\" -f csv"
+      "commandName": "Project"
     }
   }
 }
