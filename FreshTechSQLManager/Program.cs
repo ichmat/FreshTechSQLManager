@@ -1,13 +1,21 @@
 ﻿using FreshTechSQLManager.Entity;
 using FreshTechSQLManager.Entity.Models;
 using System;
+using System.Text;
 using static FreshTechSQLManager.CommandReader;
 
 namespace FreshTechSQLManager
 {
+    internal enum FORMAT
+    {
+        DEFAULT = 0,
+        CSV = 1,
+        JSON = 2,
+    }
+
     internal class Program
     {
-        
+        private static FORMAT _format = FORMAT.DEFAULT;
 
         private static bool _is_logged = false;
         private static Instance _instance;
@@ -15,11 +23,23 @@ namespace FreshTechSQLManager
         private static string _login = "admin";
         private static string _password = "admin";
 
+        private static readonly string[] notreadablesCommand =
+        {
+            "-u",
+            "--user",
+            "-p",
+            "--password",
+            "-s",
+            "--sql",
+            "-f",
+            "--format",
+        };
+
         static void Main(string[] args)
         {
             Console.WriteLine("Welcome to FreshTechSQLManager !");
             _instance = new Instance();
-            ReadArgs(args);
+            ReadArgs(args, true);
             CommandType type = CommandType.Undefined;
             do
             {
@@ -29,38 +49,140 @@ namespace FreshTechSQLManager
                     userWrite = Console.ReadLine();
                 } 
                 while (userWrite == null);
-                Command result = new CommandReader(userWrite!).commandResult;
-                type = result.CommandType;
-                if(type != CommandType.Exit)
+                userWrite = PreReadCommand(userWrite);
+                if (!string.IsNullOrWhiteSpace(userWrite))
                 {
-                    CheckExecution(result);
+                    Command result = new CommandReader(userWrite!).commandResult;
+                    type = result.CommandType;
+                    if (type != CommandType.Exit)
+                    {
+                        CheckExecution(result);
+                    }
                 }
             } 
             while (type != CommandType.Exit);
         }
 
-        static void ReadArgs(string[] args)
+        static FORMAT GetFormat(string format)
+        {
+            switch(format.ToLower())
+            {
+                case "csv":
+                    return FORMAT.CSV;
+                case "json":
+                    return FORMAT.JSON;
+                default:
+                    return FORMAT.DEFAULT;
+            }
+        }
+
+        static string PreReadCommand(string command)
+        {
+            List<string> args = new List<string>();
+            StringBuilder sb = new StringBuilder();
+
+            bool quoted = false;
+            bool unreadableCommand = false;
+
+            for(int i = 0; i < command.Length; ++i)
+            {
+                if (command[i] == ' ' && !quoted)
+                {
+                    if(sb.Length > 0)
+                    {
+                        string c = sb.ToString();
+                        args.Add(c);
+                        sb.Clear();
+                        c = c.ToLower();
+                        if (!unreadableCommand && notreadablesCommand.Contains(c))
+                        {
+                            unreadableCommand = true;
+                        }
+                    }
+                }
+                else if(command[i] == '\"')
+                {
+                    quoted = !quoted;
+                }
+                else
+                {
+                    sb.Append(command[i]);
+                }
+            }
+
+            if (sb.Length > 0)
+            {
+                args.Add(sb.ToString());
+            }
+
+            if(unreadableCommand)
+            {
+                // ISOLATE CMD
+                command = string.Empty;
+                for (int i = 0; i < args.Count; i++)
+                {
+                    string c = args[i].ToString();
+                    if (notreadablesCommand.Contains(c.ToLower()))
+                    {
+                        ++i;
+                    }
+                    else
+                    {
+                        if(command != string.Empty)
+                        {
+                            command += ' ';
+                        }
+                        command += c;
+                    }
+                }
+
+                ReadArgs(args.ToArray(), false);
+            }
+
+
+            return command;
+        }
+
+        static void ReadArgs(string[] args, bool consoleStart)
         {
             string? bdd = null;
             string? login = null;
             string? password = null;
+            string? sql = null;
+            string? format = null;
 
             for(int i = 0; i < args.Length; i++)
             {
-                if (args[i].ToLower() == "-u")
+                string arg = args[i].ToLower();
+                if (arg == "-u" || arg == "--user")
                 {
                     if(args.Length != i+1)
                     {
                         login = args[i+1];
                     }
                 }
-                else if (args[i].ToLower() == "-p")
+                else if (arg == "-p" || arg == "--password")
                 {
                     if (args.Length != i + 1)
                     {
                         password = args[i + 1];
                     }
-                }else if (i == 0)
+                }
+                else if (arg == "-s" || arg == "--sql")
+                {
+                    if (args.Length != i + 1)
+                    {
+                       sql = args[i + 1];
+                    }
+                }
+                else if (arg == "-f" || arg == "--format")
+                {
+                    if (args.Length != i + 1)
+                    {
+                        format = args[i + 1];
+                    }
+                }
+                else if (consoleStart && i == 0)
                 {
                     bdd = args[i];
                 }
@@ -68,15 +190,25 @@ namespace FreshTechSQLManager
 
             if(login != null)
             {
-                CheckCredential(login!, password);
+                CheckCredential(login!, password, sql != null);
             }
 
             if (bdd != null)
             {
                 SimpleExecution(() =>
-                        _instance.SelectedDatabase(bdd),
-                        "database " + bdd + " selected"
+                        _instance.SelectedDatabase(bdd)
                     );
+            }
+
+            if(format != null)
+            {
+                _format = GetFormat(format);
+            }
+
+            if(sql != null)
+            {
+                Command result = new CommandReader(sql!).commandResult;
+                CheckExecution(result);
             }
         }
 
@@ -148,12 +280,13 @@ namespace FreshTechSQLManager
         /// </summary>
         /// <param name="action">l'action à executé</param>
         /// <param name="success">le message de succès</param>
-        static void SimpleExecution(Action action, string success)
+        static void SimpleExecution(Action action, string? success = null)
         {
             try
             {
                 action.Invoke();
-                Success(success);
+                if(success != null)
+                    Success(success);
             }
             catch (ArgumentException ex)
             {
@@ -174,24 +307,93 @@ namespace FreshTechSQLManager
             }
         }
 
-        static void ExecutionWithRead(Func<string[][]> func, bool hightlightFirstLine)
+        static void ExecutionWithRead(Func<string[][]> func, bool isSelect)
         {
             try
             {
                 string[][] datas = func.Invoke();
-                // à améliorer
-                /*Array.ForEach(datas, 
-                    (lines) =>
-                    {
-                        Array.ForEach(lines, Console.Write);
-                        Console.WriteLine();
-                    });*/
-                BeautifulWrite(datas, hightlightFirstLine);
+                switch (_format)
+                {
+                    case FORMAT.DEFAULT:
+                        BeautifulWrite(datas, isSelect);
+                        break;
+                    case FORMAT.CSV:
+                        WriteCSV(datas, isSelect);
+                        break;
+                    case FORMAT.JSON:
+                        WriteJson(datas, isSelect);
+                        break;
+                }
             }
             catch (ArgumentException ex)
             {
                 Error(ex.Message.ToString());
             }
+        }
+
+        static void WriteCSV(string[][] csv, bool isSelect)
+        {
+            int i = 0;
+            if (isSelect) ++i;
+            for (; i < csv.Length; i++)
+            {
+                bool first = true;
+
+                for (int j = 0; j < csv[i].Length; j++)
+                {
+                    if(first)
+                    {
+                        first = false;
+                    }
+                    else
+                    {
+                        Console.Write(',');
+                    }
+                    Console.Write(csv[i][j]);
+                }
+                Console.WriteLine();
+
+            }
+        }
+
+        static void WriteJson(string[][] data, bool isSelect)
+        {
+            string[] titles = Array.Empty<string>();
+            int i = 0;
+            if (isSelect)
+            {
+                titles = data.First();
+                i++;
+            }
+            bool firstData = true;
+            Console.Write('[');
+            for (; i < data.Length; i++)
+            {
+                if(firstData) { firstData = false; }
+                else { Console.Write(","); }
+
+                bool first = true;
+                Console.Write('{');
+                for (int j = 0; j < data[i].Length; j++)
+                {
+                    if (first) { first = false; }
+                    else { Console.Write(","); }
+
+                    if(titles.Length > j)
+                    {
+                        Console.Write('\"' + titles[j] + "\":");
+                    }
+                    else
+                    {
+                        Console.Write("\"Data" + (j+1).ToString() + "\":");
+                    }
+
+                    Console.Write('\"' + data[i][j] + '\"');
+                }
+                Console.Write('}');
+
+            }
+            Console.WriteLine(']');
         }
 
         static void BeautifulWrite(string[] datas, string? title = null)
@@ -329,7 +531,7 @@ namespace FreshTechSQLManager
             }
         }
 
-        static void CheckCredential(string login, string? password)
+        static void CheckCredential(string login, string? password, bool silent = false)
         {
             if(_is_logged)
             {
@@ -346,7 +548,8 @@ namespace FreshTechSQLManager
             if(login == _login && password == _password) 
             {
                 _is_logged = true;
-                Success("Connexion success");
+                if(!silent)
+                    Success("Connexion success");
             }
             else
             {
